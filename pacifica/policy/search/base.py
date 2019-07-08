@@ -7,9 +7,9 @@ except ImportError:  # pragma: no cover only python 2
     from backports.functools_lru_cache import lru_cache
 from functools import wraps
 from six import text_type
-import requests
 from ..admin import AdminPolicy
 from ..config import get_config
+from ..utils import requests_retry_session
 
 
 _LRU_GLOBAL_ARGS = {
@@ -47,7 +47,7 @@ class SearchBase(object):
         """Get the transaction user relationship."""
         get_params = kwargs.copy()
         get_params.update(cls.global_get_args)
-        resp = requests.get(
+        resp = requests_retry_session().get(
             text_type('{base_url}/{mdobject}').format(
                 mdobject=mdobject,
                 base_url=get_config().get('metadata', 'endpoint_url')

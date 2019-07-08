@@ -11,12 +11,12 @@ except ImportError:  # pragma: no cover
     from queue import Queue
 from math import ceil
 from datetime import datetime
-import requests
 from elasticsearch import Elasticsearch, ElasticsearchException, helpers
 from six import text_type
 from .config import get_config
 from .root import Root
 from .search_render import ELASTIC_INDEX, SearchRender
+from .utils import requests_retry_session
 
 ELASTIC_CONNECT_ATTEMPTS = 40
 ELASTIC_WAIT = 3
@@ -228,7 +228,7 @@ def yield_data(**kwargs):
     }
     get_list = ['{}={}'.format(key, val) for key, val in get_args.items()]
     url = '{base_url}/{orm_obj}?'+'&'.join(get_list)
-    resp = requests.get(
+    resp = requests_retry_session().get(
         text_type(url).format(
             base_url=get_config().get('metadata', 'endpoint_url'),
             orm_obj=obj,
@@ -259,7 +259,7 @@ def generate_work(items_per_page, work_queue, time_ago, exclude):
     time_delta = (now - time_ago).replace(microsecond=0)
     for obj in SYNC_OBJECTS:
         for time_field in ['created', 'updated']:
-            resp = requests.get(
+            resp = requests_retry_session().get(
                 text_type('{base_url}/objectinfo/{orm_obj}?{time_field}={epoch}&{time_field}_operator=gt').format(
                     base_url=get_config().get('metadata', 'endpoint_url'),
                     time_field=time_field,

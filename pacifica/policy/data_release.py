@@ -5,11 +5,11 @@ from __future__ import print_function
 from datetime import datetime
 from json import dumps
 from six import text_type
-import requests
 from dateutil import parser
 from .config import get_config
 from .admin import AdminPolicy
 from .search.base import SearchBase
+from .utils import requests_retry_session
 
 VALID_KEYWORDS = [
     'projects.actual_end_date',
@@ -41,7 +41,7 @@ def relavent_data_release_objs(time_ago, orm_obj, exclude_list):
         'suspense_date_operator': 'between'
     }
     suspense_args.update(SearchBase.global_get_args)
-    resp = requests.get(
+    resp = requests_retry_session().get(
         text_type('{base_url}/{orm_obj}').format(
             base_url=get_config().get('metadata', 'endpoint_url'),
             orm_obj=orm_obj
@@ -54,7 +54,7 @@ def relavent_data_release_objs(time_ago, orm_obj, exclude_list):
                 proj_id = proj_obj['_id']
                 if text_type(proj_id) in exclude_list:
                     continue
-                resp = requests.get(
+                resp = requests_retry_session().get(
                     text_type('{base_url}/{rel_type}?project={proj_id}').format(
                         rel_type=rel_type,
                         base_url=get_config().get('metadata', 'endpoint_url'),
@@ -81,7 +81,7 @@ def relavent_suspense_date_objs(time_ago, orm_obj, date_key):
             ).replace(microsecond=0).isoformat()
         }
         obj_args.update(SearchBase.global_get_args)
-        resp = requests.get(
+        resp = requests_retry_session().get(
             text_type('{base_url}/{orm_obj}').format(
                 base_url=get_config().get('metadata', 'endpoint_url'),
                 orm_obj=orm_obj
@@ -95,7 +95,7 @@ def relavent_suspense_date_objs(time_ago, orm_obj, date_key):
 def update_suspense_date_objs(objs, time_after, orm_obj):
     """update the list of objs given date_key adding time_after."""
     for obj_id, obj_date_key in objs.items():
-        resp = requests.post(
+        resp = requests_retry_session().post(
             text_type('{base_url}/{orm_obj}?_id={obj_id}').format(
                 base_url=get_config().get('metadata', 'endpoint_url'),
                 orm_obj=orm_obj,
@@ -119,7 +119,7 @@ def update_data_release(objs):
     admin_policy = AdminPolicy()
     rel_uuid = admin_policy.get_relationship_info(name='authorized_releaser')[0].get('uuid')
     for trans_id in objs:
-        resp = requests.get(
+        resp = requests_retry_session().get(
             text_type(
                 '{base_url}/transaction_user?transaction={trans_id}&relationship={rel_uuid}'
             ).format(
@@ -129,7 +129,7 @@ def update_data_release(objs):
         )
         if resp.status_code == 200 and resp.json():
             continue
-        resp = requests.put(
+        resp = requests_retry_session().put(
             text_type(
                 '{base_url}/transaction_user'
             ).format(

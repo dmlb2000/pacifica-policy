@@ -5,15 +5,15 @@ from __future__ import print_function
 import sys
 from time import sleep
 from json import dumps
-import requests
 import cherrypy
-from pacifica.policy.uploader.rest import UploaderPolicy
-from pacifica.policy.status.rest import StatusPolicy
-from pacifica.policy.ingest.rest import IngestPolicy
-from pacifica.policy.events.rest import EventsPolicy
-from pacifica.policy.reporting.rest import ReportingPolicy
-from pacifica.policy.config import get_config
-from pacifica.policy.globals import METADATA_CONNECT_ATTEMPTS, METADATA_WAIT
+from .uploader.rest import UploaderPolicy
+from .status.rest import StatusPolicy
+from .ingest.rest import IngestPolicy
+from .events.rest import EventsPolicy
+from .reporting.rest import ReportingPolicy
+from .config import get_config
+from .globals import METADATA_CONNECT_ATTEMPTS, METADATA_WAIT
+from .utils import requests_retry_session
 
 
 def error_page_default(**kwargs):
@@ -60,7 +60,7 @@ class Root(object):
     def try_meta_connect(cls, attempts=0):
         """Try to connect to the metadata service see if its there."""
         try:
-            ret = requests.get(get_config().get('metadata', 'status_url'))
+            ret = requests_retry_session().get(get_config().get('metadata', 'status_url'))
             if ret.status_code != 200:
                 raise Exception(
                     'try_meta_connect: {0}\n'.format(ret.status_code)
